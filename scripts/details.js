@@ -6,7 +6,7 @@ var pkg = require( '../package' );
 if( process.argv[2] === 'VERSION' ) {
 	console.log( pkg.version );
 } else if( process.argv[2] === 'UWS_VERSION' ) {
-	console.log( pkg.dependencies.uws.replace('^','') );
+	console.log( pkg.dependencies["uWebSockets.js"].replace('^','') );
 } else if( process.argv[2] === 'NAME' ) {
 	console.log( pkg.name );
 } else if( process.argv[2] === 'OS' ) {
@@ -25,5 +25,5 @@ function writeMetaFile() {
 		gitRef: exec( 'git rev-parse HEAD' ).toString().trim(),
 		buildTime: new Date().toString()
 	};
-	fs.writeFileSync( path.join( __dirname, '..', 'meta.json' ), JSON.stringify( meta, null, 2 ), 'utf8' );
+	fs.writeFileSync( path.join( __dirname, '..', 'dist', 'meta.json' ), JSON.stringify( meta, null, 2 ), 'utf8' );
 }
