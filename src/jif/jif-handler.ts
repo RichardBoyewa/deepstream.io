@@ -9,7 +9,7 @@ import {
   ACTIONS
 } from '../constants'
 
-import * as Ajv from 'ajv'
+import {Ajv} from 'ajv'
 
 import {
   getUid,
@@ -19,7 +19,7 @@ import {
 import { jifSchema } from './jif-schema'
 import { JifMessage, DeepstreamServices, EVENT } from '@deepstream/types'
 
-const ajv = new Ajv()
+const ajv = new Ajv({strict: false})
 
 const validateJIF: any = ajv.compile(jifSchema)
 
@@ -155,7 +155,7 @@ function getJifToMsg () {
   JIF_TO_MSG.presence = {}
 
   JIF_TO_MSG.presence.query = (msg: JifInMessage) => (
-    msg.parsedData ? JIF_TO_MSG.presence.queryUsers(msg) : JIF_TO_MSG.presence.queryAll(msg)
+    msg.names ? JIF_TO_MSG.presence.queryUsers(msg) : JIF_TO_MSG.presence.queryAll(msg)
   )
 
   JIF_TO_MSG.presence.queryAll = () => ({
@@ -171,7 +171,7 @@ function getJifToMsg () {
     message: {
       topic: TOPIC.PRESENCE,
       action: PRESENCE_ACTION.QUERY,
-      data: msg.parsedData,
+      names: msg.names,
     },
   })
 

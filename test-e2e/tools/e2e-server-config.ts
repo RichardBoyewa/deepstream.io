@@ -3,7 +3,6 @@ import * as permissions from '../config/permissions-open.json'
 
 export const getServerConfig = (port: number): PartialDeepstreamConfig => ({
     serverName : `server-${port}`,
-    logLevel: LOG_LEVEL.WARN,
     showLogo : false,
 
     rpc: {
@@ -41,7 +40,7 @@ export const getServerConfig = (port: number): PartialDeepstreamConfig => ({
           urlPath: '/e2e-v4',
           maxAuthAttempts              : 2,
           unauthenticatedClientTimeout : 200,
-          heartbeatInterval: 50
+          heartbeatInterval: 10000
         } as any
       },
       {
@@ -50,7 +49,7 @@ export const getServerConfig = (port: number): PartialDeepstreamConfig => ({
           urlPath: '/e2e-v3',
           maxAuthAttempts              : 2,
           unauthenticatedClientTimeout : 200,
-          heartbeatInterval: 50
+          heartbeatInterval: 10000
         } as any
       },
       {
@@ -70,6 +69,20 @@ export const getServerConfig = (port: number): PartialDeepstreamConfig => ({
         headerKey: 'deepstream-password',
         headerValue: 'deepstream-secret'
       } as any
+    },
+
+    telemetry: {
+      type: 'deepstreamIO',
+      options: {
+        enabled: false
+      }
+    },
+
+    logger: {
+      type: 'default',
+      options: {
+        logLevel: LOG_LEVEL.WARN
+      }
     },
 
     locks: {

@@ -24,6 +24,7 @@ export class StdOutLogger extends DeepstreamPlugin implements DeepstreamLogger {
   constructor (private options: any = {}, private services: DeepstreamServices, config: DeepstreamConfig) {
     super()
     this.useColors = this.options.colors === undefined ? true : this.options.colors
+    this.setLogLevel(config.logLevel)
   }
 
   public async whenReady (): Promise<void> {
@@ -50,8 +51,8 @@ export class StdOutLogger extends DeepstreamPlugin implements DeepstreamLogger {
     this.log(LOG_LEVEL.ERROR, '', event, logMessage, metaData)
   }
 
-  public fatal (event: EVENT, logMessage: string): void {
-    this.log(LOG_LEVEL.FATAL, '', event, logMessage)
+  public fatal (event: EVENT, logMessage: string, metaData?: MetaData): void {
+    this.log(LOG_LEVEL.FATAL, '', event, logMessage, metaData)
     this.services.notifyFatalException()
   }
 
@@ -77,7 +78,7 @@ export class StdOutLogger extends DeepstreamPlugin implements DeepstreamLogger {
    * Logs a line
    */
   private log (logLevel: LOG_LEVEL, namespace: string, event: EVENT, logMessage: string, metaData: MetaData | null = null): void {
-    if (logLevel >= LOG_LEVEL.WARN && this.services) {
+    if (logLevel >= LOG_LEVEL.WARN && this.services && this.services.monitoring) {
       this.services.monitoring.onErrorLog(logLevel, event, logMessage, metaData!)
     }
 

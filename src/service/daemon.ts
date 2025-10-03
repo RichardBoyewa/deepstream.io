@@ -59,7 +59,10 @@ function _start (options: any) {
     starts += 1
 
     // Fork the child process piping stdin/out/err to the parent
-    child = spawn(options.processExec, ['start'].concat(process.argv.slice(2)), {
+    // NOTE: ADDING process.pkg.entrypoint as first arg to the spawned process is a workaround to fix a pkg bug
+    // https://github.com/vercel/pkg/issues/1356
+    // @ts-ignore
+    child = spawn(options.processExec, [process.pkg.entrypoint, 'start'].concat(process.argv.slice(2)), {
       env: process.env
     })
 

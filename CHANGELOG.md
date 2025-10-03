@@ -1,3 +1,413 @@
+## [10.0.0] - 2025.08.02
+
+### Fix - BREAKING CHANGE
+
+The storage authentication service, when creating new users automatically, was encoding the password hashes in 'ascii' format which can create characters that are not allowed in a database text field. This has been fixed by encoding the password hashes in 'base64'. Since this is a crippling bug and no one noticed before, I'm going to assume the feature is not being used in production and therefore a new non-backwards compatible version will be released.
+
+### Chore
+
+## [9.1.3] - 2025.07.04
+
+### Fix
+
+Handle Erase messages as Delete messages in valve permissions
+
+## [9.1.2] - 2025.06.30
+
+### Fix
+
+Log metadata
+
+## [9.1.1] - 2025.06.18
+
+### Fix - lint
+
+## [9.1.0] - 2025.06.18
+
+### Fix - breaking change
+
+when using uws http server response.writeStatus must be called before any other method, otherwise all response status are 200.
+I decided not to make a major release because if somebody else was using it a bug report would have been made.
+And thanks to a LLM's for the quick refactoring!
+
+## [9.0.1] - 2025.06.17
+
+### Feature
+
+Enable pino logger options thus making it possible to use transports
+
+## [9.0.0] - 2025.06.13
+
+### Fix - Breaking change
+
+- The log level namig logic was not being implemented properly. logLevels as String where not converted to numbers, therefore those levels where not being properly enforced. The simplest path is just to use logLevels as numbers everywhere. This is a breaking change because config files with log levels as string will error at the config validation stage.
+
+### Chore
+
+- Update deps
+
+## [8.0.0] - 2025.04.26
+
+### Chore
+
+- Update nodejs to version 22.x
+- Update uWebsockets
+- Update deps
+
+## [7.0.10] - 2024.03.06
+
+### Task
+
+- Separate docker ubuntu amd and arm releases due to intermitent build failures in arm. See https://github.com/nodejs/docker-node/issues/1335
+
+## [7.0.9] - 2024.03.04
+
+### Fix
+
+- http auth issue #1138
+
+## [7.0.8] - 2023.10.23
+
+### Task
+
+- multi arch docker image builds. Thanks @daanh432
+
+### Chore
+
+- update deps. Thanks @hugojosefson
+
+## [7.0.7] - 2023.07.20
+
+### Fix
+
+- Cork uWebsocketjs http responses
+
+## [7.0.6] - 2023.07.19
+
+### Task
+
+- update uWebsocketjs
+
+## [7.0.5] - 2023.03.24
+
+### Fix
+
+- use cli/config file options for cluster
+
+## [7.0.4] - 2023.03.08
+
+### Feature
+
+- deepstream cluster CLI enabled in order to run a cluster of deepstream servers on each available processor core
+- combine monitoring: now deepstream accepts an array of monitoring plugins in order to have separate plugins when it comes to monitoring messages, server activity and other custom functionality that might be required. For example you can run the included log monitoring, and an audit plugin that could save to another system/server which users are writing to which records by listening to incoming messages. This allows to create inmediate database replication strategies and so forth.
+
+## [7.0.3] - 2023.03.02
+
+### Fix
+
+- set pkg entrypoint for daemon
+
+## [7.0.2] - 2023.02.27
+
+### Fix
+
+- log monitoring
+- daemon issues due to pkg bug
+
+## [7.0.1] - 2023.02.03
+
+### Fix
+
+- pkg issues
+
+## [7.0.0] - 2023.02.03
+
+### Chore
+
+- Update nodejs to version 18.x
+- Update uWebsockets
+- Update deps
+
+## [6.2.2] - 2022.12.22
+
+### Fix
+
+- Enforce http origins options
+- log a warning when a websocket message is not sent
+- uws server add maxBackpressure option, defaults to 1024*1024
+
+## [6.2.1] - 2022.06.20
+
+### Task
+
+- update deps
+
+## [6.2.0] - 2022.06.05
+
+### Task
+
+- eliminate externalUrl from config and cluster messages since it was not used
+
+- set `provideRequestorName` and `provideRequestorData` as false by default to avoid overhead since from now on that data can actually be sent on rpc messages and handled on @deepstream/client > 6.0.2.
+
+### Misc
+
+- update submodules and deps
+
+## [6.1.2] - 2022.04.22
+
+### Fix
+
+- Revert to lockfileVersion 1
+
+## [6.1.1] - 2022.04.22
+
+### Fix
+
+- Check maxMessageSize limit on POST requests when using uws http server
+
+### Chore
+
+- update @deepstream/client dev dependency and update e2e tests
+
+## [6.1.0] - 2022.03.17
+
+### Fix
+
+- Send write ack error messages when cache, storage or permission fails. For this to work it requires client version >= 6
+- Do not remove cluster nodes if cluster size is 1
+
+### Feature
+
+- Enable vertical cluster node option:
+Now we can use all available cores in a vertical cluster! By setting the cluster option to `clusterNode: { name: 'vertical' }` you can run as many deepstream instances you want in each of the server cores and it will be one syncronized cluster.
+
+## [6.0.1] - 2022.01.02
+
+### Task
+
+- Check that executable works in pre-push hook
+- Use pkg instead of nexe
+
+## [6.0.0] - 2021.12.12
+
+### Chore
+
+- Update nodejs to version 14.x
+- Update uWebsockets
+
+## [5.2.6] - 2021.11.27
+
+### Misc
+
+- Update dependencies
+
+## [5.2.5] - 2021.11.27
+
+### Misc
+
+- Update dependencies
+
+## [5.2.4] - 2021.04.05
+
+### Misc
+
+- Disable telemetry
+
+## [5.2.3] - 2021.03.09
+
+### Feature
+
+- enable combine authentication. Now when the auth config has more than one authentication strategy the server will query them in order untill one passes or all fail.
+
+## [5.2.2] - 2021.03.01
+
+### Feature
+
+- enable querying for specific user presence on http endpoint
+
+
+## [5.2.1] - 2021.02.24
+
+### Fixes
+
+- uws idleTimeout is in seconds! That's why it didn't closed the connection on time.
+- buffer ack messages
+- remove noDelay from default-options and use it on subscription registry as a param to enable/disable buffering
+
+
+## [5.2.0] - 2021.02.17
+
+### Task
+
+- Github Actions CI/CD
+
+## [5.1.8] - 2020.11.25
+
+### Misc
+
+- Updating uws to support apple silicon
+
+### Fix
+
+- Increasing CI heartbeat timeouts
+
+
+## [5.1.7] - 2020.11.25
+
+### Fix
+
+- Calling destroy on socketWrapper instead of close, since close is a reaction and destroy an action
+
+## [5.1.6] - 2020.11.24
+
+### Fix
+
+- Fix #1091 heartbeat not working with node-http/ws
+
+This fix now adds a timestamps to every message frame recieved and sets up an interval
+per socket to check heartbeat exists. Didn't do any performance tests but I'm assuming having a single interval is cheaper than setting a timeout and canceling on each message.
+
+This fix also exposes that we don't serialize STATE_TOPIC_REGISTRY/NOT_SUBSCRIBED message correctly which throws an error and crashes the server. That fix will require more elbow grease and hasn't been reported so will just keep an eye on issues.
+
+## [5.1.5] - 2020.10.29
+
+### Fix
+
+- Fix #1089 install service gives error
+
+### Misc
+
+- Updating dependencies
+
+## [5.1.4] - 2020.10.16
+
+### Fix
+
+- Fixed bug causing the server to crash with older sdks.
+
+## [5.1.3] - 2020.08.08
+
+### Fix
+
+- Use upgrade property for uWebSockets http server.
+
+### Misc
+
+- Do not run e2e:v3 test on the pre-push hook
+
+## [5.1.2] - 2020.07.05
+
+### Misc
+
+- Updating all dependencies
+
+## [5.1.1] - 2020.05.11
+
+### Fix
+
+Disabling telemetry for tests
+
+Fixing critical bug with client sdk version tracking
+
+## [5.1.0] - 2020.05.11
+
+### Feat
+
+Adding telemetry. The server code is also in the rep (under telemetry-server).
+
+This uses a random uuid as your deploymentId, which is pretty much the only way
+I can avoid having thousands of records in the database from one machine restarting / ci process.
+
+If possible please use a different ID for production environments!
+
+```yaml
+# This disables specific feature in DS, which is a more performant way
+# than disabling via permissions and is also how telemetry figures out
+# what features are enabled
+enabledFeatures:
+  record: true
+  event: true
+  rpc: true
+  presence: true
+
+telemetry:
+  type: deepstreamIO
+  options:
+    # Disable telemetry entirely
+    enabled: true
+    # Prints whatever will be sent to the telemetry endpoint,
+    # without actually sending it
+    debug: false
+    # An anonymous uuid that allows us to know its one unique
+    # deployment. Please don't generate these randomly, it really
+    # skews up analytics. This is in the config and user generated
+    # because we don't want to
+    deploymentId: <uuid goes here>
+```
+
+### Fix
+
+Fixes by the awesome @jaime-ez around heartbeats and ping messages!
+
+## [5.0.16] - 2020.04.30
+
+### Feat
+
+- Add two new plugins:
+
+  - heap-snapshot
+    This allows deepstream to save its heap space for analysis by v8 tools
+
+    ```yaml
+    plugins:
+      heap-snapshot:
+        name: 'heap-snapshot'
+        options:
+          interval: 60000
+          outputDir: file(../heap-snapshots)
+    ```
+
+  - aws
+    This is a general plugin for all AWS services, currently allows us to sync
+    the heap-snapshot directory to S3 which is useful when running via docker.
+    The functionality however is generic, so you could have a plugin that outputs
+    other useful data.
+    You can also very simply add more services (or more of the same ones). This
+    just makes it easier for us to maintain the plugin.
+
+    ```yaml
+    plugins:
+      aws:
+        name: aws
+        options:
+          accessKeyId: ${AWS_ACCESS_KEY}
+          secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+          services:
+            - type: s3-sync
+              options:
+                syncInterval: 60000
+                syncDir: file(../heap-snapshots)
+                bucketName: ${SYNC_BUCKET_NAME}
+                bucketRegion: ${AWS_DEFAULT_REGION}
+    ```
+
+- SocketData is passed to monitoring service in order to allow for fined grain monitoring.
+
+### Fix
+
+- uws service accepts options requests and enforces CORS params
+
+## [5.0.15] - 2020.04.24
+
+### Fix
+
+- Allowing valve file to be passed in via nodeJS config (@jaime-ez)
+
+### Misc
+
+- Updating uws dependency
+
 ## [5.0.14] - 2020.04.19
 
 ### Misc

@@ -187,12 +187,12 @@ export default class RecordHandler extends Handler<RecordMessage> {
       }
 
       try {
-        await new Promise((resolve, reject) => this.services.cache.deleteBulk(message.names!, (error) => {
+        await new Promise<void>((resolve, reject) => this.services.cache.deleteBulk(message.names!, (error) => {
           error ? reject(error) : resolve()
         }))
       } catch (error) {
         const errorMessage = 'Error deleting messages in bulk when attempting to notify of remote changes'
-        this.services.logger.error(EVENT.ERROR, `${errorMessage}: ${error.toString()}`, { message })
+        this.services.logger.error(EVENT.ERROR, `${errorMessage}: ${error?.toString()}`, { message })
         socketWrapper.sendMessage({
           topic: TOPIC.RECORD,
           action: RECORD_ACTION.RECORD_NOTIFY_ERROR,

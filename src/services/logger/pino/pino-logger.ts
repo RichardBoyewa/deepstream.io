@@ -1,20 +1,23 @@
-import * as pino from 'pino'
-import { LOG_LEVEL, DeepstreamPlugin, DeepstreamLogger, DeepstreamServices, NamespacedLogger, EVENT } from '@deepstream/types'
+import pino, { LoggerOptions } from 'pino'
+import { LOG_LEVEL, DeepstreamPlugin, DeepstreamLogger, DeepstreamConfig, DeepstreamServices, NamespacedLogger, EVENT } from '@deepstream/types'
 
-const DSToPino: { [index: number]: string } = {
+const DSToPino: { [index: number]: pino.LevelWithSilent } = {
     [LOG_LEVEL.DEBUG]: 'debug',
     [LOG_LEVEL.FATAL]: 'fatal',
     [LOG_LEVEL.ERROR]: 'error',
     [LOG_LEVEL.WARN]: 'warn',
     [LOG_LEVEL.INFO]: 'info',
+    [LOG_LEVEL.OFF]: 'silent',
 }
 
 export class PinoLogger extends DeepstreamPlugin implements DeepstreamLogger {
     public description = 'Pino Logger'
-    private logger: pino.Logger = pino()
+    private logger: pino.Logger
 
-    constructor (pluginOptions: {}, private services: DeepstreamServices) {
+    constructor (pluginOptions: LoggerOptions, private services: DeepstreamServices, config: DeepstreamConfig) {
         super()
+        this.logger = pino(pluginOptions)
+        this.setLogLevel(config.logLevel)
     }
 
     /**
@@ -36,55 +39,57 @@ export class PinoLogger extends DeepstreamPlugin implements DeepstreamLogger {
     /**
      * Log as info
      */
-    public info (event: string, message?: string, metaData?: any): void {
+    public info (event: EVENT, message?: string, metaData?: any): void {
         if (metaData) {
-            this.logger.info({ ...metaData, message, event })
+            this.logger.info({ event, message, ...metaData })
         } else {
-            this.logger.info({ message, event })
+            this.logger.info({ event, message })
         }
     }
 
     /**
      * Log as debug
      */
-    public debug (event: string, message?: string, metaData?: any): void {
+    public debug (event: EVENT, message?: string, metaData?: any): void {
         if (metaData) {
-            this.logger.debug({ ...metaData, message, event, })
+            this.logger.debug({ event, message, ...metaData })
         } else {
-            this.logger.debug({ message, event })
+            this.logger.debug({ event, message })
         }
     }
 
     /**
      * Log as warn
      */
-    public warn (event: string, message?: string, metaData?: any): void {
+    public warn (event: EVENT, message?: string, metaData?: any): void {
         if (metaData) {
-            this.logger.warn({ ...metaData, message, event, })
+            this.logger.warn({ event, message, ...metaData })
         } else {
-            this.logger.warn({ message, event })
+            this.logger.warn({ event, message })
         }
     }
 
     /**
      * Log as error
      */
-    public error (event: string, message?: string, metaData?: any): void {
+    public error (event: EVENT, message?: string, metaData?: any): void {
+        this.services.monitoring.onErrorLog(LOG_LEVEL.ERROR, event, message!, metaData!)
         if (metaData) {
-            this.logger.error({ ...metaData, message, event, })
+            this.logger.error({ event, message, ...metaData })
         } else {
-            this.logger.error({ message, event })
+            this.logger.error({ event, message })
         }
     }
 
     /**
-     * Log as error
+     * Log as fatal
      */
-    public fatal (event: string, message?: string, metaData?: any): void {
+    public fatal (event: EVENT, message?: string, metaData?: any): void {
+        this.services.monitoring.onErrorLog(LOG_LEVEL.FATAL, event, message!, metaData!)
         if (metaData) {
-            this.logger.fatal({ ...metaData, message, event, })
+            this.logger.fatal({ event, message, ...metaData })
         } else {
-            this.logger.fatal({ message, event })
+            this.logger.fatal({ event, message })
         }
         this.services.notifyFatalException()
     }
@@ -104,7 +109,7 @@ export class PinoLogger extends DeepstreamPlugin implements DeepstreamLogger {
         }
     }
 
-    private log (logLevel: string, namespace: string, event: EVENT, message: string) {
-        this.logger[logLevel]({ namespace, event, message })
+    private log (logLevel: pino.LevelWithSilent, namespace: string, event: EVENT, message: string, metaData?: any ) {
+        this.logger[logLevel]({ namespace, event, message, ...metaData })
     }
 }

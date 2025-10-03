@@ -6,7 +6,6 @@ const WebSocketDefaultOptions = {
   heartbeatInterval: 30000,
   outgoingBufferTimeout: 0,
   maxBufferByteSize: 100000,
-  noDelay: true,
   headers: [],
 
   /*
@@ -15,7 +14,6 @@ const WebSocketDefaultOptions = {
   unauthenticatedClientTimeout: 180000,
   maxAuthAttempts: 3,
   logInvalidAuthData: false,
-  perMessageDeflate: false,
   maxMessageSize: 1048576
 }
 
@@ -31,11 +29,6 @@ export function get (): DeepstreamConfig {
     dependencyInitializationTimeout: 2000,
     // defaults to false as the event is captured via commander when run via binary or standalone
     exitOnFatalError: false,
-
-    /*
-     * Connectivity
-     */
-    externalUrl: null,
 
     /*
      * Connection Endpoints
@@ -92,7 +85,7 @@ export function get (): DeepstreamConfig {
         allowAllOrigins: true,
         origins: [],
         headers: [],
-        maxMessageSize: 1024
+        maxMessageSize: 1048576
       }
     },
 
@@ -110,7 +103,10 @@ export function get (): DeepstreamConfig {
 
     permission: {
       type: 'none',
-      options: {}
+      options: {
+        maxRuleIterations: 3,
+        cacheEvacuationInterval: 60000
+      }
     },
 
     cache: {
@@ -126,6 +122,13 @@ export function get (): DeepstreamConfig {
     monitoring: {
       type: 'none',
       options: {}
+    },
+
+    telemetry: {
+      type: 'deepstreamIO',
+      options: {
+        enabled: false,
+      }
     },
 
     locks: {
@@ -163,15 +166,13 @@ export function get (): DeepstreamConfig {
 
     rpc: {
       /**
-       * Send requestorName by default.
-       * Overriden by provideRequestorDetails
+       * Don't send requestorName by default.
        */
-      provideRequestorName: true,
+      provideRequestorName: false,
       /**
-       * Send requestorData by default.
-       * Overriden by provideRequestorDetails
+       * Don't send requestorData by default.
        */
-      provideRequestorData: true,
+      provideRequestorData: false,
 
       ackTimeout: 1000,
       responseTimeout: 10000,
@@ -196,7 +197,7 @@ export function get (): DeepstreamConfig {
       event: true,
       rpc: true,
       presence: true,
-      monitoring: true
+      monitoring: false
     },
   }
 

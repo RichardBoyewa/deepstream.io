@@ -9,6 +9,7 @@ export abstract class WSSocketWrapper<SerializedType extends { length: number }>
   public uuid: number = Math.random()
   public authCallback: Function | null = null
   public authAttempts: number = 0
+  public lastMessageRecievedAt: number = 0
 
   private bufferedWrites: SerializedType[] = []
   private closeCallbacks: Set<Function> = new Set()
@@ -64,7 +65,7 @@ export abstract class WSSocketWrapper<SerializedType extends { length: number }>
    */
   public sendAckMessage (message: Message, allowBuffering: boolean = true): void {
     this.services.monitoring.onMessageSend(message)
-    this.sendBuiltMessage(this.getAckMessage(message))
+    this.sendBuiltMessage(this.getAckMessage(message), allowBuffering)
   }
 
   public abstract getMessage (message: Message): SerializedType
@@ -89,7 +90,7 @@ export abstract class WSSocketWrapper<SerializedType extends { length: number }>
 
   public close (): void {
     this.isClosed = true
-    delete this.authCallback
+    this.authCallback = null
 
     this.closeCallbacks.forEach((cb) => cb(this))
     this.services.logger.info(EVENT.CLIENT_DISCONNECTED, this.userId!)

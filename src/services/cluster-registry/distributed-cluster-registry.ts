@@ -117,6 +117,10 @@ export class DistributedClusterRegistry extends DeepstreamPlugin implements Clus
      * <clusterNodeInactiveTimeout> milliseconds ago.
      */
     private checkNodes () {
+        // Never remove a single node instance
+        if (this.nodes.size === 1) {
+            return
+        }
         const now = Date.now()
         for (const [serverName, node] of this.nodes) {
             if (now - node.lastStatusTime > this.pluginOptions.nodeInactiveTimeout) {
@@ -170,7 +174,6 @@ export class DistributedClusterRegistry extends DeepstreamPlugin implements Clus
             action: CLUSTER_ACTION.STATUS,
             serverName: this.config.serverName,
             leaderScore: this.leaderScore,
-            externalUrl: this.config.externalUrl,
             role: this.role
         } as ClusterMessage
         this.updateNode(message)

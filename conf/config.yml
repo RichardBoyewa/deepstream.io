@@ -3,20 +3,46 @@
 serverName: UUID
 # Show the deepstream logo on startup
 showLogo: true
-# Log messages with this level and above. Valid levels are DEBUG, INFO, WARN, ERROR, OFF
-logLevel: INFO
 # Plugin startup timeout – deepstream init will fail if any plugins fail to emit a 'done' event within this timeout
-dependencyInitializationTimeout: 2000
+dependencyInitializationTimeout: 5000
 # Directory where all plugins reside
 #libDir: ../lib
 # Exit the process a fatal error occurs, like losing a cache connection
 exitOnFatalError: false
+# Log messages with this level and above. Valid levels are 0 (DEBUG), 1 (INFO), 2 (WARN), 3 (ERROR), 4 (FATAL), 100(OFF)
+logLevel: 0
+
+# This disables specific feature in DS, which is a more performant way
+# than disabling via permissions and is also how telemetry figures out
+# what features are enabled
+enabledFeatures:
+  record: true
+  event: true
+  rpc: true
+  presence: true
+
+telemetry:
+  type: deepstreamIO
+  options:
+    # Disable telemetry entirely
+    enabled: false
+    # Prints whatever will be sent to the telemetry endpoint,
+    # without actually sending it
+    debug: false
+    # An anonymous uuid that allows us to know its one unique
+    # deployment. Please don't generate these randomly if using
+    # node, it really skews up analytics.
+    # deploymentId: <uuid goes here>
 
 rpc:
   # Timeout for client RPC acknowledgement
   ackTimeout: 1000
   # Timeout for actual RPC provider response
   responseTimeout: 10000
+  # Don't send requestorName by default.
+  provideRequestorName: false
+  # Don't send requestorData by default.
+  provideRequestorData: false
 
 record:
   # Maximum time permitted to fetch from cache
@@ -37,7 +63,7 @@ record:
   # Invalid configuration: data should NOT have additional properties
 listen:
   # Try finding a provider randomly rather than by the order they subscribed to.
-  shuffleProviderss: true
+  shuffleProviders: true
   # The amount of time to wait for a provider to acknowledge or reject a listen request
   responseTimeout: 500
   # The amount of time before trying to reattempt finding matches for subscriptions. This
@@ -59,6 +85,8 @@ httpServer:
     # below will be permitted and the 'Access-Control-Allow-Credentials' response header will be
     # enabled
     allowAllOrigins: true
+    # maximum allowed size of a POST request body, in bytes, defaults to 1 MB
+    maxMessageSize: 1048576
     # a list of allowed origins
     origins:
       - 'https://example.com'
@@ -72,13 +100,23 @@ httpServer:
   # options:
   #   # url path for http health-checks, GET requests to this path will return 200 if deepstream is alive
   #   healthCheckPath: /health-check
+  #   # -- CORS --
+  #   # if disabled, only requests with an 'Origin' header matching one specified under 'origins'
+  #   # below will be permitted and the 'Access-Control-Allow-Credentials' response header will be
+  #   # enabled
+  #   allowAllOrigins: true
+  #   # a list of allowed origins
+  #   origins:
+  #     - 'https://example.com'
+  #   # maximum allowed size of a POST request body, in bytes, defaults to 1 MB
+  #   maxMessageSize: 1048576
   #   # Headers to copy over from websocket
   #   headers:
   #     - user-agent
   #   # Options required to create an ssl app
-  #   # ssl:
-  #   #   key: file(ssl/key.pem)
-  #   #   cert: file(ssl/cert.pem)
+  #   ssl:
+  #     key: file(ssl/key.pem)
+  #     cert: file(ssl/cert.pem)
   #   ##  dhParams: ...
   #   ##  passphrase: ...
 
@@ -92,12 +130,14 @@ connectionEndpoints:
       # the amount of milliseconds between each ping/heartbeat message
       heartbeatInterval: 30000
       # the amount of milliseconds that writes to sockets are buffered
-      outgoingBufferTimeout: 10
+      outgoingBufferTimeout: 0
       # the maximum amount of bytes to buffer before flushing, stops the client from large enough packages
       # to block its responsiveness
       maxBufferByteSize: 100000
 
       # Security
+      # should the server log invalid auth data, defaults to false
+      logInvalidAuthData: false
       # amount of time a connection can remain open while not being logged in
       unauthenticatedClientTimeout: 180000
       # invalid login attempts before the connection is cut
@@ -105,63 +145,63 @@ connectionEndpoints:
       # maximum allowed size of an individual message in bytes
       maxMessageSize: 1048576
 
-  - type: ws-text
-    options:
-      # url path websocket connections connect to
-      urlPath: /deepstream-v3
-      # the amount of milliseconds between each ping/heartbeat message
-      heartbeatInterval: 30000
-      # the amount of milliseconds that writes to sockets are buffered
-      outgoingBufferTimeout: 10
-      # the maximum amount of bytes to buffer before flushing, stops the client from large enough packages
-      # to block its responsiveness
-      maxBufferByteSize: 100000
+  # - type: ws-text
+  #   options:
+  #     # url path websocket connections connect to
+  #     urlPath: /deepstream-v3
+  #     # the amount of milliseconds between each ping/heartbeat message
+  #     heartbeatInterval: 30000
+  #     # the amount of milliseconds that writes to sockets are buffered
+  #     outgoingBufferTimeout: 0
+  #     # the maximum amount of bytes to buffer before flushing, stops the client from large enough packages
+  #     # to block its responsiveness
+  #     maxBufferByteSize: 100000
 
-      # Security
-      # amount of time a connection can remain open while not being logged in
-      unauthenticatedClientTimeout: 180000
-      # invalid login attempts before the connection is cut
-      maxAuthAttempts: 3
-      # maximum allowed size of an individual message in bytes
-      maxMessageSize: 1048576
+  #     # Security
+  #     # should the server log invalid auth data, defaults to false
+  #     logInvalidAuthData: false
+  #     # amount of time a connection can remain open while not being logged in
+  #     unauthenticatedClientTimeout: 180000
+  #     # invalid login attempts before the connection is cut
+  #     maxAuthAttempts: 3
+  #     # maximum allowed size of an individual message in bytes
+  #     maxMessageSize: 1048576
 
-  - type: ws-json
-    options:
-      # url path websocket connections connect to
-      urlPath: /deepstream-json
-      # the amount of milliseconds between each ping/heartbeat message
-      heartbeatInterval: 30000
-      # the amount of milliseconds that writes to sockets are buffered
-      outgoingBufferTimeout: 10
-      # the maximum amount of bytes to buffer before flushing, stops the client from large enough packages
-      # to block its responsiveness
-      maxBufferByteSize: 100000
+  # - type: ws-json
+  #   options:
+  #     # url path websocket connections connect to
+  #     urlPath: /deepstream-json
+  #     # the amount of milliseconds between each ping/heartbeat message
+  #     heartbeatInterval: 30000
+  #     # the amount of milliseconds that writes to sockets are buffered
+  #     outgoingBufferTimeout: 0
+  #     # the maximum amount of bytes to buffer before flushing, stops the client from large enough packages
+  #     # to block its responsiveness
+  #     maxBufferByteSize: 100000
 
-      # Security
-      # amount of time a connection can remain open while not being logged in
-      unauthenticatedClientTimeout: 180000
-      # invalid login attempts before the connection is cut
-      maxAuthAttempts: 3
-      # maximum allowed size of an individual message in bytes
-      maxMessageSize: 1048576
-
+  #     # Security
+  #     # should the server log invalid auth data, defaults to false
+  #     logInvalidAuthData: false
+  #     # amount of time a connection can remain open while not being logged in
+  #     unauthenticatedClientTimeout: 180000
+  #     # invalid login attempts before the connection is cut
+  #     maxAuthAttempts: 3
+  #     # maximum allowed size of an individual message in bytes
+  #     maxMessageSize: 1048576
 
   - type: http
     options:
       # allow 'authData' parameter in POST requests, if disabled only token and OPEN auth is
       # possible
       allowAuthData: true
-      # enable the authentication endpoint for requesting tokens/userData.
-      # note: a custom authentication handler is required for token generation
-      enableAuthEndpoint: false
-      # path for authentication requests
-      authPath: /api/auth
       # path for POST requests
       postPath: /api
       # path for GET requests
       getPath: /api
-      # maximum allowed size of an individual message in bytes
-      maxMessageSize: 1024
+      # should the server log invalid auth data, defaults to false
+      logInvalidAuthData: false
+      # http request timeout in milliseconds, defaults to 20000
+      requestTimeout: 20000
 
   # - type: mqtt
   #   options:
@@ -174,7 +214,7 @@ connectionEndpoints:
 
 # Logger Configuration
 logger:
-  # use either the default logger, this does not currently support meta objects
+  # use the default logger, this does not currently support meta objects
   type: default
   options:
     colors: true
@@ -182,8 +222,8 @@ logger:
   # log using json, this supports meta objects
   # name: pino
   # options:
-  # # value of logLevel (line 4) will always overwrite this value
-  #   logLevel: INFO
+  # # this value will always overwrite value of logLevel (line 4)
+  #   logLevel: 0
 
   # name: winston
   # options:
@@ -281,22 +321,22 @@ permission:
     cacheEvacuationInterval: 60000
 
 monitoring:
-  type: none
+  - type: none
 
   # # Allows monitoring stats to be requested via HTTP, useful for polling agents
-  # # such as LogStach
-  # type: http
-  # options:
-  #   url: /monitoring
-  #   allowOpenPermissions: false
-  #   headerKey: deepstream-password2
-  #   headerValue: deepstream-secret
+  # # such as LogStash
+  # - type: http
+  #   options:
+  #     url: /monitoring
+  #     allowOpenPermissions: false
+  #     headerKey: deepstream-password2
+  #     headerValue: deepstream-secret
 
   # # Logs monitoring stats, useful for kibana where you can visualize meta data
-  # type: log
-  # options:
-  #   logInterval: 30000
-  #   monitoringKey: DEEPSTREAM_MONITORING
+  # - type: log
+  #   options:
+  #     logInterval: 30000
+  #     monitoringKey: DEEPSTREAM_MONITORING
 
 # clusterNode:
 #   type: default
@@ -308,3 +348,22 @@ monitoring:
 # plugins:
 #   custom:
 #     path: '...'
+
+#   heap-snapshot:
+#     name: 'heap-snapshot'
+#     options:
+#       interval: 60000
+#       outputDir: file(../heap-snapshots)
+
+#   aws:
+#     name: aws
+#     options:
+#       accessKeyId: ${AWS_ACCESS_KEY}
+#       secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+#       services:
+#         - type: s3-sync
+#           options:
+#             syncInterval: 60000
+#             syncDir: file(../heap-snapshots)
+#             bucketName: ${SYNC_BUCKET_NAME}
+#             bucketRegion: ${AWS_DEFAULT_REGION}

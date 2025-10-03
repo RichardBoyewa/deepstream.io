@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-LTS_VERSION="12"
+LTS_VERSION="22"
 NODE_VERSION=$( node --version )
 NODE_VERSION_WITHOUT_V=$( echo ${NODE_VERSION} | cut -c2-10 )
 COMMIT=$( node scripts/details.js COMMIT )
@@ -14,13 +14,7 @@ DEEPSTREAM_PACKAGE=${PACKAGE_DIR}/deepstream.io
 GIT_BRANCH=$( git rev-parse --abbrev-ref HEAD )
 CREATE_DISTROS=false
 
-NODE_SOURCE="nexe_node/node/$NODE_VERSION_WITHOUT_V/node-v$NODE_VERSION_WITHOUT_V"
-
-EXTENSION=""
-if [[ ${OS} = "win32" ]]; then
-    EXTENSION=".exe"
-fi
-EXECUTABLE_NAME="build/deepstream$EXTENSION"
+EXECUTABLE_NAME="build/deepstream"
 
 # Needed even for void builds for travis deploy to pass
 mkdir -p build
@@ -31,17 +25,8 @@ if ! [[ ${NODE_VERSION_WITHOUT_V} == ${LTS_VERSION}* ]]; then
 fi
 
 if [[ -z $1  ]]; then
-    if ! [[ ${TRAVIS_BRANCH} = 'master' ]] && ! [[ ${APPVEYOR_REPO_BRANCH} = 'master' ]] && ! [[ ${GIT_BRANCH} = 'master' ]]; then
+    if ! [[ ${GIT_BRANCH} = 'master' ]]; then
         echo "Running on branch ${GIT_BRANCH}"
-        if [[ -z ${TRAVIS_TAG} ]] && [[ -z ${APPVEYOR_REPO_TAG} ]]; then
-            echo "Only runs on tags or master"
-            exit
-        elif [[ ${APPVEYOR_REPO_TAG} = false ]]; then
-            echo "On appveyor, not a tag or master"
-            exit
-        else
-            echo "Running on tag $TRAVIS_TAG $APPVEYOR_REPO_TAG"
-        fi
     else
         echo "Running on master"
     fi
@@ -72,12 +57,6 @@ function compile {
     echo "Generating meta.json"
     node scripts/details.js META
 
-    # Nexe Patches
-    echo "Nexe Patches for Browserify, copying stub versions of optional installs since they aern't bundled anyway"
-
-    echo "Stubbing xml2js for needle"
-    mkdir -p node_modules/xml2js && echo "throw new Error()" >> node_modules/xml2js/index.js
-
     # Creating package structure
     rm -rf build/${PACKAGE_VERSION}
     mkdir -p ${DEEPSTREAM_PACKAGE}
@@ -89,27 +68,27 @@ function compile {
     echo '{ "name": "TEMP" }' > package.json
 
     echo "Adding uWebSockets.js to libs"
-    npm install --production --global-style uWebSockets.js@${UWS_VERSION}
+    npm install --omit=dev --install-strategy=shallow uWebSockets.js@${UWS_VERSION}
 
     echo "Adding cache plugins"
-    npm install --production --global-style \
+    npm install --omit=dev --install-strategy=shallow \
         @deepstream/cache-redis \
         @deepstream/cache-memcached \
         # @deepstream/cache-hazelcast
 
     echo "Adding cluster plugins"
-    npm install --production --global-style \
+    npm install --omit=dev --install-strategy=shallow \
         @deepstream/clusternode-redis
 
     echo "Adding storage plugins"
-    npm install --production --global-style \
+    npm install --omit=dev --install-strategy=shallow \
         @deepstream/storage-mongodb \
         @deepstream/storage-rethinkdb \
         @deepstream/storage-elasticsearch \
         @deepstream/storage-postgres
-    
+
     echo "Adding logger plugins"
-    npm install --production --global-style \
+    npm install --omit=dev --install-strategy=shallow \
         @deepstream/logger-winston
 
     mv node_modules/* .
@@ -117,7 +96,7 @@ function compile {
     cd -
 
     echo "Creating '$EXECUTABLE_NAME', this will take a while..."
-    NODE_VERSION_WITHOUT_V=${NODE_VERSION_WITHOUT_V} EXECUTABLE_NAME=${EXECUTABLE_NAME} node scripts/nexe.js > /dev/null &
+    LTS=${LTS_VERSION} OS=${OS} EXECUTABLE_NAME=${EXECUTABLE_NAME} node scripts/pkg.js
 
     PROC_ID=$!
     SECONDS=0;
@@ -129,9 +108,9 @@ function compile {
     echo ""
 
     if wait ${pid}; then
-        echo -e "\tNexe Build Succeeded"
+        echo -e "\tPkg Build Succeeded"
     else
-        echo -e "\tNexe Build Failed"
+        echo -e "\tPkg Build Failed"
         exit 1
     fi
 
@@ -142,7 +121,7 @@ function compile {
     echo -e "\tAdding Changelog"
     cp CHANGELOG.md ${DEEPSTREAM_PACKAGE}/doc/CHANGELOG.md
     echo -e "\tAdding Licenses"
-    curl -L https://raw.githubusercontent.com/nodejs/node/v12.x/LICENSE -o ${DEEPSTREAM_PACKAGE}/doc/NODE.LICENSE
+    curl -L https://raw.githubusercontent.com/nodejs/node/v22.x/LICENSE -o ${DEEPSTREAM_PACKAGE}/doc/NODE.LICENSE
     mv build/DEPENDENCIES.LICENSE ${DEEPSTREAM_PACKAGE}/doc/LICENSE
 
     echo "Moving deepstream into package structure at $DEEPSTREAM_PACKAGE"
@@ -299,7 +278,6 @@ function distros {
 
 function clean {
     rm -rf ${DEEPSTREAM_PACKAGE}
-    rm build/deepstream
 }
 
 compile

@@ -29,6 +29,7 @@ export default class BaseWebsocketConnectionEndpoint extends DeepstreamPlugin im
   private maxAuthAttempts: number = 3
   private unauthenticatedClientTimeout: number | boolean = false
   private connectionListener!: ConnectionListener
+  private clientVersions: { [index: string]: Set<string> } = {}
 
   constructor (private options: WebSocketServerConfig, protected services: DeepstreamServices, protected dsOptions: DeepstreamConfig) {
     super()
@@ -51,6 +52,10 @@ export default class BaseWebsocketConnectionEndpoint extends DeepstreamPlugin im
 
   public setConnectionListener (connectionListener: ConnectionListener) {
     this.connectionListener = connectionListener
+  }
+
+  public getClientVersions () {
+    return this.clientVersions
   }
 
   /**
@@ -184,6 +189,12 @@ export default class BaseWebsocketConnectionEndpoint extends DeepstreamPlugin im
     }
 
     if (msg.action === CONNECTION_ACTION.CHALLENGE) {
+      if (msg.sdkType && msg.sdkVersion) {
+        if (!this.clientVersions[msg.sdkType]) {
+          this.clientVersions[msg.sdkType] = new Set()
+        }
+        this.clientVersions[msg.sdkType].add(msg.sdkVersion)
+      }
       socketWrapper.onMessage = socketWrapper.authCallback!
       socketWrapper.sendMessage({
         topic: TOPIC.CONNECTION,
@@ -282,7 +293,7 @@ export default class BaseWebsocketConnectionEndpoint extends DeepstreamPlugin im
   private registerAuthenticatedSocket (unauthenticatedSocketWrapper: UnauthenticatedSocketWrapper, userData: any): void {
     const socketWrapper = this.appendDataToSocketWrapper(unauthenticatedSocketWrapper, userData)
 
-    delete unauthenticatedSocketWrapper.authCallback
+    unauthenticatedSocketWrapper.authCallback = null
     unauthenticatedSocketWrapper.onMessage = (parsedMessages: Message[]) => {
       this.onMessages(socketWrapper, parsedMessages)
     }

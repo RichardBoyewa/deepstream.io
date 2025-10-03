@@ -30,7 +30,6 @@ export class NodeHTTP extends DeepstreamPlugin implements DeepstreamHTTPService 
   public description: string = 'NodeJS HTTP Service'
   private server!: http.Server | https.Server
   private isReady: boolean = false
-  private origins?: string[]
 
   private methods: string[] = ['GET', 'POST', 'OPTIONS']
   private methodsStr: string = this.methods.join(', ')
@@ -54,14 +53,14 @@ export class NodeHTTP extends DeepstreamPlugin implements DeepstreamHTTPService 
     super()
 
     if (this.pluginOptions.allowAllOrigins === false) {
-        if (!this.pluginOptions.origins) {
+        if (this.pluginOptions.origins?.length === 0) {
           this.services.logger.fatal(EVENT.INVALID_CONFIG_DATA, 'HTTP allowAllOrigins set to false but no origins provided')
         }
     }
 
     this.jsonBodyParser = bodyParser.json({
         inflate: true,
-        limit: `${pluginOptions.maxMessageSize / 1024}mb`
+        limit: `${pluginOptions.maxMessageSize}b`
     })
   }
 
@@ -106,7 +105,13 @@ export class NodeHTTP extends DeepstreamPlugin implements DeepstreamHTTPService 
   }
 
   public sendWebsocketMessage (socket: WebSocket, message: any, isBinary: boolean) {
-    socket.send(message)
+    socket.send(message, (err) => {
+      if (err) {
+        // message was not sent
+        const socketWrapper = this.connections.get(socket)!
+        this.services.logger.warn(EVENT.ERROR, `Failed to deliver message to ${socketWrapper.userId}, error: ${err.message}`)
+      }
+    })
   }
 
   public getSocketWrappersForUserId (userId: string) {
@@ -124,21 +129,31 @@ export class NodeHTTP extends DeepstreamPlugin implements DeepstreamHTTPService 
   }
 
   public registerWebsocketEndpoint (path: string, createSocketWrapper: SocketWrapperFactory, webSocketConnectionEndpoint: WebSocketConnectionEndpoint) {
-    const server = new WebSocket.Server({ noServer: true })
+    const server = new WebSocket.Server({ noServer: true, maxPayload:  webSocketConnectionEndpoint.wsOptions.maxMessageSize})
     server.on('connection', (websocket: WebSocket, handshakeData: SocketHandshakeData) => {
       websocket.on('error', (error) => {
         this.services.logger.error(EVENT.ERROR, `Error on websocket: ${error.message}`)
       })
 
       const socketWrapper = createSocketWrapper(websocket, handshakeData, this.services, webSocketConnectionEndpoint.wsOptions, webSocketConnectionEndpoint)
+      socketWrapper.lastMessageRecievedAt = Date.now()
       this.connections.set(websocket, socketWrapper)
 
+      const interval = setInterval(() => {
+        if ((Date.now() - socketWrapper.lastMessageRecievedAt) > webSocketConnectionEndpoint.wsOptions.heartbeatInterval * 2) {
+          this.services.logger.error(EVENT.INFO, 'Heartbeat missing on websocket, terminating connection')
+          socketWrapper.destroy()
+        }
+      }, webSocketConnectionEndpoint.wsOptions.heartbeatInterval)
+
       websocket.on('close', () => {
+        clearInterval(interval)
         webSocketConnectionEndpoint.onSocketClose.call(webSocketConnectionEndpoint, socketWrapper)
         this.connections.delete(websocket)
       })
 
       websocket.on('message', (msg: string) => {
+        socketWrapper.lastMessageRecievedAt = Date.now()
         const messages = socketWrapper.parseMessage(msg)
         if (messages.length > 0) {
           socketWrapper.onMessage(messages)
@@ -325,12 +340,12 @@ export class NodeHTTP extends DeepstreamPlugin implements DeepstreamHTTPService 
       this.terminateResponse(response, HTTPStatus.FORBIDDEN, 'Forbidden Host.')
       return false
     }
-    if (this.origins!.indexOf(requestOriginUrl) === -1) {
+    if (this.pluginOptions.origins!.indexOf(requestOriginUrl) === -1) {
       if (!requestOriginUrl) {
         this.terminateResponse(
           response,
           HTTPStatus.FORBIDDEN,
-          'CORS is configured for this this. All requests must set a valid "Origin" header.'
+          'CORS is configured for this. All requests must set a valid "Origin" header.'
         )
       } else {
         this.terminateResponse(

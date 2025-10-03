@@ -1,16 +1,17 @@
-import * as Ajv from 'ajv'
-import * as betterAjvErrors from 'better-ajv-errors'
+import {Ajv} from 'ajv'
+import addFormat from 'ajv-formats'
+import betterAjvErrors from 'better-ajv-errors'
 
 import { LOG_LEVEL } from '@deepstream/types'
 
 const LogLevelValidation = {
-  type: ['string', 'integer'],
+  type: ['integer'],
   enum: [
-    'DEBUG', LOG_LEVEL.DEBUG,
-    'INFO', LOG_LEVEL.INFO,
-    'WARN', LOG_LEVEL.WARN,
-    'ERROR', LOG_LEVEL.ERROR,
-    'OFF', LOG_LEVEL.OFF
+    LOG_LEVEL.DEBUG,
+    LOG_LEVEL.INFO,
+    LOG_LEVEL.WARN,
+    LOG_LEVEL.ERROR,
+    LOG_LEVEL.OFF
   ]
 }
 
@@ -35,7 +36,6 @@ function getPluginOptions (name: string, types: string[], properties: any) {
 const generalOptions = {
   libDir: { type: ['string', 'null'] },
   serverName: { type: 'string', minLength: 1 },
-  externalUrl: { type: ['null', 'string'] },
   showLogo: { type: 'boolean' },
   exitOnFatalError: { type: 'boolean' },
   dependencyInitializationTimeout: { type: 'number', minimum: 1000 },
@@ -102,6 +102,14 @@ const storageOptions = getPluginOptions(
   'storage',
   ['default'],
   {
+  }
+)
+
+const telemetryOptions = getPluginOptions(
+  'telemetry',
+  ['deepstreamIO'],
+  {
+    enabled: { type: 'boolean' }
   }
 )
 
@@ -182,9 +190,10 @@ const loggerOptions = getPluginOptions(
   'logger',
   ['default', 'json'],
   {
-    colors: { type: 'boolean' },
-    logLevel: LogLevelValidation,
-    options: { type: 'object' }
+    options: {
+      colors: { type: 'boolean' },
+      logLevel: LogLevelValidation
+     }
   }
 )
 
@@ -196,12 +205,19 @@ const subscriptionsOptions = getPluginOptions(
   }
 )
 
-const monitoringOptions = getPluginOptions(
-  'monitoring',
-  ['http', 'log', 'none'],
-  {
+const monitoringOptions = {
+  monitoring: {
+    type: ['array', 'object'],
+    items: {
+      properties: {
+        type: { type: 'string', enum: ['none', 'log', 'http'] },
+        name: { type: 'string', minLength: 1 },
+        path: { type: 'string', minLength: 1 },
+      },
+      options: { type: 'object'}
+    }
   }
-)
+}
 
 const locksOptions = getPluginOptions(
   'locks',
@@ -214,7 +230,7 @@ const locksOptions = getPluginOptions(
 
 const clusterNodeOptions = getPluginOptions(
   'clusterNode',
-  ['default'],
+  ['default', 'vertical'],
   {
   }
 )
@@ -262,6 +278,7 @@ const schema = {
     ...permissionOptions,
     ...subscriptionsOptions,
     ...monitoringOptions,
+    ...telemetryOptions,
     ...locksOptions,
     ...clusterNodeOptions,
     ...clusterRegistryOptions,
@@ -271,12 +288,13 @@ const schema = {
 }
 
 export const validate = function (config: Object): void {
-  const ajv = new Ajv({ jsonPointers: true, allErrors: true })
+  const ajv = new Ajv({ allErrors: true, strict: false })
+  addFormat(ajv)
   const validator = ajv.compile(schema)
   const valid = validator(config)
 
   if (!valid) {
-    const output = (betterAjvErrors(schema, config, validator.errors, { format: 'js' }) as never as betterAjvErrors.IOutputError[])
+    const output = betterAjvErrors(schema, config, validator.errors ?? [], { format: 'js' })
     console.error('There was an error validating your configuration:')
     output.forEach((e, i) => console.error(`${i + 1})${e.error}${e.suggestion ? `. ${e.suggestion}` : ''}`))
     process.exit(1)

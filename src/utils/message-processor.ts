@@ -37,7 +37,8 @@ export default class MessageProcessor {
       const message = parsedMessages[i]
 
       if (message.topic === TOPIC.CONNECTION && message.action === CONNECTION_ACTION.PING) {
-        // Each connection endpoint is responsible for dealing with ping connections
+        // respond to PING message
+        socketWrapper.sendMessage({ topic: TOPIC.CONNECTION, action: CONNECTION_ACTION.PONG })
         continue
       }
 
@@ -117,6 +118,10 @@ export default class MessageProcessor {
       if (message.correlationId) {
         permissionErrorMessage.correlationId = message.correlationId
       }
+      if (message.isWriteAck) {
+        permissionErrorMessage.isWriteAck = true
+      }
+
       socketWrapper.sendMessage(permissionErrorMessage)
       return
     }
@@ -132,6 +137,10 @@ export default class MessageProcessor {
       if (message.correlationId) {
         permissionDeniedMessage.correlationId = message.correlationId
       }
+      if (message.isWriteAck) {
+        permissionDeniedMessage.isWriteAck = true
+      }
+
       socketWrapper.sendMessage(permissionDeniedMessage)
       return
     }

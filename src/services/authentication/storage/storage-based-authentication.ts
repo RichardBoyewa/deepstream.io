@@ -6,6 +6,7 @@ import { createHash } from '../../../utils/utils'
 const STRING = 'string'
 
 interface StorageAuthConfig {
+  // fail authentication process if invalid login parameters are used
   reportInvalidParameters: boolean,
   // the table to store and lookup the users in
   table: string,
@@ -34,12 +35,16 @@ export class StorageBasedAuthentication extends DeepstreamPlugin implements Deep
     keyLength: this.settings.keyLength,
     algorithm: this.settings.hash
   }
+  private base64KeyLength = 4 * Math.ceil(this.settings.keyLength / 3)
 
   /**
   * Creates the class, reads and validates the users.json file
   */
   constructor (private settings: StorageAuthConfig, private services: DeepstreamServices) {
     super()
+    if (this.settings.reportInvalidParameters === undefined) {
+      this.settings.reportInvalidParameters = true
+    }
   }
 
   public async whenReady (): Promise<void> {
@@ -88,25 +93,33 @@ export class StorageBasedAuthentication extends DeepstreamPlugin implements Deep
         }
         return await new Promise((resolve, reject) => this.services.storage.set(storageId, 1, {
           username: authData.username,
-          password: hash.toString('ascii') + salt,
+          password: hash.toString('base64') + salt,
           clientData,
           serverData
-        }, () =>
+        }, (err) => {
+          if (err) {
+            this.logger.error(EVENT.ERROR, `Error creating user ${JSON.stringify(err)}`)
+            return resolve({
+              isValid: false,
+              clientData: { error: 'Error creating user' }
+            })
+          }
           resolve({
             isValid: true,
             id: clientData.id,
             clientData,
             serverData
           })
+        }
         ))
       }
       return null
     }
 
-    const expectedHash = userData.password.substr(0, this.settings.keyLength)
-    const { hash: actualHash } = await createHash(authData.password, this.hashSettings, userData.password.substr(this.settings.keyLength))
+    const expectedHash = userData.password.substr(0, this.base64KeyLength)
+    const { hash: actualHash } = await createHash(authData.password, this.hashSettings, userData.password.substr(this.base64KeyLength))
 
-    if (expectedHash === actualHash.toString('ascii')) {
+    if (expectedHash === actualHash.toString('base64')) {
       return {
         isValid: true,
         id: userData.clientData.id,
@@ -115,6 +128,11 @@ export class StorageBasedAuthentication extends DeepstreamPlugin implements Deep
       }
     }
 
-    return { isValid: false }
+    if (this.settings.reportInvalidParameters) {
+      return { isValid: false }
+    } else {
+      return null
+    }
+
   }
 }

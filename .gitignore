@@ -1,3 +1,4 @@
+heap-snapshots
 .nyc_combined_coverage
 dist
 .DS_Store
@@ -24,9 +25,8 @@ coverage
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
 
-# nexe
+# pkg
 build
-nexe_node
 meta.json
 
 # Compiled binary addons (http://nodejs.org/api/addons.html)
